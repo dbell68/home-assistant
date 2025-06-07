@@ -1,2 +1,4 @@
 # home-assistant
-My Home Assistant customizations and code samples
+My Home Assistant customizations and code samples.
+
+

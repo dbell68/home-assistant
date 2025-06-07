@@ -1,0 +1,210 @@
+# TMHI sensors
+## Authenticate with TMHI gateway and store bearer token
+- resource: 'http://192.168.12.1/TMI/v1/auth/login'
+  headers:
+    User-Agent: Home Assistant
+    Content-Type: application/json
+  scan_interval: 800
+  timeout: 30
+  method: POST
+  verify_ssl: false
+  payload: '{ "username": "admin", "password": "<replace_with_your_gateway_password>" }'
+  sensor:
+    - name: tmhi_auth
+      unique_id: sensor.tmhi_auth
+      json_attributes:
+        - auth
+      value_template: >
+        {{ 'Authenticated' if value_json.auth.token is defined else 'Failed' }}
+    - name: tmhi_auth_expires
+      unique_id: sensor.tmhi_auth_expires
+      value_template: "{{ value_json.auth.expiration | timestamp_custom('%H:%M:%S %Z') }}"
+
+## TMHI REST sensors to get AP info
+- resource: 'http://192.168.12.1/TMI/v1/network/configuration/v2?get=ap'
+  headers:
+    User-Agent: Home Assistant
+    Content-Type: application/json
+    Authorization: "Bearer {{ state_attr('sensor.tmhi_auth', 'auth')['token'] }}"
+  scan_interval: 1800
+  timeout: 30
+  method: GET
+  verify_ssl: false
+  sensor:
+    # General AP sensors
+    - name: tmhi_wifi_ssid_broadcast
+      unique_id: sensor.tmhi_wifi_ssid_broadcast
+      icon: >
+        {% set isEnabled = states('sensor.tmhi_wifi_ssid_broadcast') %}
+        {{ 'mdi:broadcast' if isEnabled == 'Enabled' else 'mdi:broadcast-off' }}
+      value_template: >
+        {% set isEnabled = value_json['ssids'][0]['isBroadcastEnabled'] %}
+        {{ 'Enabled' if isEnabled else 'Disabled' }}
+        
+    - name: tmhi_wifi_ssid_name
+      unique_id: sensor.tmhi_wifi_ssid_name
+      icon: mdi:identifier
+      value_template: "{{ value_json['ssids'][0]['ssidName'] }}"
+
+    # 2.4Ghz AP sensors
+    - name: tmhi_wifi_24ghz_enabled
+      unique_id: sensor.tmhi_wifi_24ghz_enabled
+      icon: >
+        {% set isEnabled = states('sensor.tmhi_wifi_24ghz_enabled') %}
+        {{ 'mdi:broadcast' if isEnabled == 'Enabled' else 'mdi:broadcast-off' }}
+      value_template: >
+        {% set isEnabled = value_json['ssids'][0]['2.4ghzSsid'] %}
+        {{ 'Enabled' if isEnabled == true else Disabled }}
+
+    - name: tmhi_wifi_24ghz_channel
+      unique_id: sensor.tmhi_wifi_24ghz_channel
+      icon: >
+        {{ 'mdi:alpha-a-circle-outline' if is_state('sensor.tmhi_wifi_24ghz_channel', 'Auto') else 'mdi:numeric' }}
+      value_template: "{{ value_json['2.4ghz']['channel'] }}"
+
+    # 5.0Ghz AP sensors
+    - name: tmhi_wifi_5ghz_enabled
+      unique_id: sensor.tmhi_wifi_5ghz_enabled
+      icon: >
+        {% set isEnabled = states('sensor.tmhi_wifi_5ghz_enabled') %}
+        {{ 'mdi:broadcast' if isEnabled == 'Enabled' else 'mdi:broadcast-off' }}
+      value_template: >
+        {% set isEnabled = value_json['ssids'][0]['5.0ghzSsid'] %}
+        {{ 'Enabled' if isEnabled == true else 'Disabled' }}
+
+    - name: tmhi_wifi_5ghz_channel
+      unique_id: sensor.tmhi_wifi_5ghz_channel
+      icon: >
+        {{ 'mdi:alpha-a-circle-outline' if is_state('sensor.tmhi_wifi_5ghz_channel', 'Auto') else 'mdi:numeric' }}
+      value_template: "{{ value_json['5.0ghz']['channel'] }}"
+
+## TMHI REST sensors to get cellular info
+- resource: 'http://192.168.12.1/TMI/v1/gateway?get=all'
+  headers:
+    User-Agent: Home Assistant
+    Content-Type: application/json
+  scan_interval: 1800
+  timeout: 30
+  method: GET
+  verify_ssl: false
+  sensor:
+    # Device sensors
+    - name: tmhi_software_version
+      unique_id: sensor.tmhi_software_version
+      icon: mdi:folder-information-outline
+      value_template: "{{ value_json['device']['softwareVersion'] }}"
+  
+    - name: tmhi_serial
+      unique_id: sensor.tmhi_serial
+      icon: mdi:identifier
+      value_template: "{{ value_json['device']['serial'] }}"
+        
+    - name: tmhi_update_state
+      unique_id: sensor.tmhi_update_state
+      icon: mdi:update
+      value_template: "{{ value_json['device']['updateState'] }}"
+        
+    - name: tmhi_mac_id
+      unique_id: sensor.tmhi_mac_id
+      icon: mdi:network-outline
+      value_template: "{{ value_json['device']['macId'] }}"
+
+    # Signal 5G sensors
+    - name: tmhi_5g_band
+      unique_id: sensor.tmhi_5g_band
+      icon: mdi:signal-5g
+      value_template: "{{ value_json['signal']['5g']['bands'][0] }}"
+  
+    - name: tmhi_5g_bars
+      unique_id: sensor.tmhi_5g_bars
+      unit_of_measurement: bars
+      icon: mdi:signal
+      value_template: "{{ value_json['signal']['5g']['bars'] | int }}"
+    
+    - name: tmhi_5g_sinr
+      unique_id: sensor.tmhi_5g_sinr
+      unit_of_measurement: dbm
+      icon: mdi:signal
+      value_template: "{{ value_json['signal']['5g']['sinr'] }}"
+
+    - name: tmhi_5g_rsrp
+      unique_id: sensor.tmhi_5g_rsrp
+      unit_of_measurement: dbm
+      icon: mdi:signal
+      value_template: "{{ value_json['signal']['5g']['rsrp'] }}"
+
+    - name: tmhi_5g_rsrq
+      unique_id: sensor.tmhi_5g_rsrq
+      unit_of_measurement: db
+      icon: mdi:signal
+      value_template: "{{ value_json['signal']['5g']['rsrq'] }}"
+    
+    - name: tmhi_5g_rssi
+      unique_id: sensor.tmhi_5g_rssi
+      unit_of_measurement: dbm
+      icon: mdi:signal
+      value_template: "{{ value_json['signal']['5g']['rssi'] }}"
+    
+    # Signal 4G sensors
+    - name: tmhi_4g_band
+      unique_id: sensor.tmhi_4g_band
+      icon: mdi:signal-4g
+      value_template: "{{ value_json['signal']['4g']['bands'][0] }}"
+  
+    - name: tmhi_4g_bars
+      unique_id: sensor.tmhi_4g_bars
+      unit_of_measurement: bars
+      icon: mdi:signal
+      value_template: "{{ value_json['signal']['4g']['bars'] | int }}"
+    
+    - name: tmhi_4g_sinr
+      unique_id: sensor.tmhi_4g_sinr
+      unit_of_measurement: dbm
+      icon: mdi:signal
+      value_template: "{{ value_json['signal']['4g']['sinr'] }}"
+
+    - name: tmhi_4g_rsrp
+      unique_id: sensor.tmhi_4g_rsrp
+      unit_of_measurement: dbm
+      icon: mdi:signal
+      value_template: "{{ value_json['signal']['4g']['rsrp'] }}"
+    
+    - name: tmhi_4g_rsrq
+      unique_id: sensor.tmhi_4g_rsrq
+      unit_of_measurement: db
+      icon: mdi:signal
+      value_template: "{{ value_json['signal']['4g']['rsrq'] }}"
+
+    - name: tmhi_4g_rssi
+      unique_id: sensor.tmhi_4g_rssi
+      unit_of_measurement: dbm
+      icon: mdi:signal
+      value_template: "{{ value_json['signal']['4g']['rssi'] }}"
+
+    # Time sensors
+    - name: tmhi_uptime_secs
+      unique_id: sensor.tmhi_uptime_secs
+      icon: mdi:timer-play-outline
+      value_template: "{{ value_json['time']['upTime'] }}"
+
+## TMHI IP geolocation info
+- resource: http://ip-api.com/json
+  headers:
+    User-Agent: Home Assistant
+    Content-Type: application/json
+  scan_interval: 3600
+  timeout: 30
+  method: GET
+  verify_ssl: false
+  sensor:
+    - name: tmhi_ip_location
+      unique_id: sensor.tmhi_ip_location
+      icon: mdi:ip-network-outline
+      json_attributes:
+        - country
+        - countryCode
+        - region 
+        - regionName
+        - city
+        - zip
+      value_template: "{{ value_json['query'] }}"

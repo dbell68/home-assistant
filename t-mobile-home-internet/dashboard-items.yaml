@@ -1,0 +1,610 @@
+# Internet connection info
+type: horizontal-stack
+title: INTERNET Status
+cards:
+  - type: custom:button-card
+    entity: sensor.tmhi_ip_location
+    size: 40px
+    color_type: card
+    color: magenta
+    icon: mdi:map-marker-radius-outline
+    name: |
+      [[[ 
+        let ipAddr = states['sensor.tmhi_ip_location'].state
+        return ipAddr
+      ]]]
+    show_label: true
+    label: |
+      [[[ 
+        let ipAddr = states['sensor.tmhi_ip_location'].state
+        let city = states['sensor.tmhi_ip_location'].attributes.city;
+        let region = states['sensor.tmhi_ip_location'].attributes.region;
+        if (ipAddr.match(states['input_text.tmhi_ip_ranges'].state) != null) {
+          region = 'WA !' 
+          city = '! Seattle'
+        }
+        return city + ', ' + region;
+      ]]]
+    tap_action:
+      action: url
+      url_path: https://www.iplocation.net/
+    styles:
+      card:
+        - width: 100px
+        - background: |
+            [[[
+              let ipAddr = states['sensor.tmhi_ip_location'].state
+              // if (entity.attributes.region != 'WA' && ipAddr.match(states['input_text.tmhi_ip_ranges'].state) != null) return 'purple';
+              if (entity.attributes.region != 'WA' && ipAddr.match(states['input_text.tmhi_ip_ranges'].state) == null) return 'red';
+            ]]]
+      name:
+        - font-size: 13px
+        - font-weight: normal
+      label:
+        - font-size: 13px
+        - font-weight: bold
+  - type: custom:button-card
+    template: ping_status
+    name: Ziply Fiber
+    entity: binary_sensor.ping_dns1
+    show_entity_picture: true
+    entity_picture: /local/images/ziply-icon.png
+    icon: mdi:web
+    tap_action:
+      action: url
+      url_path: http://speedtest1-sttlwawb.as20055.net:8080/hello
+    label: |
+      [[[ 
+        var avg_ping = parseFloat(states['sensor.ping_dns1_round_trip_time_average'].state);
+        return (avg_ping ? avg_ping.toFixed(1) : '0') + 'ms';
+      ]]]
+    styles:
+      card:
+        - background: |
+            [[[
+              var avg_ping = parseFloat(states['sensor.ping_dns1_round_trip_time_average'].state);
+              if (avg_ping > states['input_number.ping_threshold'].state) return 'orange';
+            ]]]
+  - type: custom:button-card
+    template: ping_status
+    name: Google
+    entity: binary_sensor.ping_dns2
+    show_entity_picture: true
+    entity_picture: /local/images/google-icon.png
+    icon: mdi:web
+    tap_action:
+      action: url
+      url_path: https://dns.google/
+    label: |
+      [[[ 
+        var avg_ping = parseFloat(states['sensor.ping_dns2_round_trip_time_average'].state);
+        return (avg_ping ? avg_ping.toFixed(1) : '0') + 'ms';
+      ]]]
+    styles:
+      card:
+        - background: |
+            [[[
+              var avg_ping = parseFloat(states['sensor.ping_dns2_round_trip_time_average'].state);
+              if (avg_ping > states['input_number.ping_threshold'].state) return 'orange';
+            ]]]
+  - type: custom:button-card
+    template: ping_status
+    name: TMHI GW
+    entity: binary_sensor.ping_tmhi_gateway
+    show_entity_picture: true
+    entity_picture: /local/images/kvd21-icon.png
+    icon: mdi:router-network-wireless
+    tap_action:
+      action: call-service
+      confirmation:
+        text: Restart TMHI gateway ?
+      service: rest_command.tmhi_reboot
+    label: |
+      [[[ 
+        var avg_ping = parseFloat(states['sensor.ping_tmhi_gateway_round_trip_time_average'].state);
+        return (avg_ping ? avg_ping.toFixed(1) : '0') + 'ms';
+      ]]]
+    styles:
+      card:
+        - background: |
+            [[[
+              var avg_ping = parseFloat(states['sensor.ping_tmhi_gateway_round_trip_time_average'].state);
+              if (avg_ping > states['input_number.ping_threshold'].state) return 'orange';
+            ]]]
+
+# Gateway status, wifi and cellular info.
+type: vertical-stack
+cards:
+  - type: horizontal-stack
+    title: TMHI 4G Status
+    visibility:
+      - condition: state
+        entity: sensor.tmhi_4g_band
+        state_not: unknown
+    cards:
+      - type: custom:button-card
+        name: 4G Band
+        entity: sensor.tmhi_4g_band
+        size: 30px
+        color_type: icon
+        color: magenta
+        show_state: true
+        show_icon: true
+        styles:
+          name:
+            - font-size: 12px
+          state:
+            - color: magenta
+            - font-size: 16px
+            - font-weight: normal
+      - type: custom:button-card
+        template: cell_bars
+        name: 4G Bars
+        entity: sensor.tmhi_4g_bars
+      - type: custom:button-card
+        template: cell_signal
+        name: 4G RSRP
+        entity: sensor.tmhi_4g_rsrp
+        state:
+          - value: -75
+            operator: ">="
+            icon: mdi:signal-cellular-3
+            styles:
+              icon:
+                - color: green
+              state:
+                - color: green
+          - value: -90
+            operator: ">="
+            icon: mdi:signal-cellular-2
+            styles:
+              icon:
+                - color: khaki
+              state:
+                - color: khaki
+          - operator: default
+            icon: mdi:signal-cellular-1
+            styles:
+              icon:
+                - color: red
+              state:
+                - color: red
+      - type: custom:button-card
+        template: cell_signal
+        name: 4G RSRQ
+        entity: sensor.tmhi_4g_rsrq
+        state:
+          - value: -10
+            operator: ">="
+            icon: mdi:signal-cellular-3
+            styles:
+              icon:
+                - color: green
+              state:
+                - color: green
+          - value: -20
+            operator: ">="
+            icon: mdi:signal-cellular-2
+            styles:
+              icon:
+                - color: khaki
+              state:
+                - color: khaki
+          - operator: default
+            icon: mdi:signal-cellular-1
+            styles:
+              icon:
+                - color: red
+              state:
+                - color: red
+      - type: custom:button-card
+        template: cell_signal
+        name: 4G RSSI
+        entity: sensor.tmhi_4g_rssi
+        state:
+          - value: -70
+            operator: ">="
+            icon: mdi:signal-cellular-3
+            styles:
+              icon:
+                - color: green
+              state:
+                - color: green
+          - value: -80
+            operator: ">="
+            icon: mdi:signal-cellular-2
+            styles:
+              icon:
+                - color: khaki
+              state:
+                - color: khaki
+          - operator: default
+            icon: mdi:signal-cellular-1
+            styles:
+              icon:
+                - color: red
+              state:
+                - color: red
+      - type: custom:button-card
+        template: cell_signal
+        name: 4G SINR
+        entity: sensor.tmhi_4g_sinr
+        state:
+          - value: 20
+            operator: ">="
+            icon: mdi:signal-cellular-3
+            styles:
+              icon:
+                - color: green
+              state:
+                - color: green
+          - value: 13
+            operator: ">"
+            icon: mdi:signal-cellular-2
+            styles:
+              icon:
+                - color: khaki
+              state:
+                - color: khaki
+          - operator: default
+            icon: mdi:signal-cellular-1
+            styles:
+              icon:
+                - color: red
+              state:
+                - color: red
+  - type: horizontal-stack
+    title: TMHI 5G Status
+    cards:
+      - type: custom:button-card
+        name: 5G Band
+        entity: sensor.tmhi_5g_band
+        size: 30px
+        color_type: icon
+        color: magenta
+        show_state: true
+        show_icon: true
+        styles:
+          name:
+            - font-size: 12px
+          state:
+            - color: magenta
+            - font-size: 16px
+            - font-weight: normal
+      - type: custom:button-card
+        template: cell_bars
+        name: 5G Bars
+        entity: sensor.tmhi_5g_bars
+      - type: custom:button-card
+        template: cell_signal
+        name: 5G RSRP
+        entity: sensor.tmhi_5g_rsrp
+        state:
+          - value: -75
+            operator: ">="
+            icon: mdi:signal-cellular-3
+            styles:
+              icon:
+                - color: green
+              state:
+                - color: green
+          - value: -90
+            operator: ">="
+            icon: mdi:signal-cellular-2
+            styles:
+              icon:
+                - color: khaki
+              state:
+                - color: khaki
+          - operator: default
+            icon: mdi:signal-cellular-1
+            styles:
+              icon:
+                - color: red
+              state:
+                - color: red
+      - type: custom:button-card
+        template: cell_signal
+        name: 5G RSRQ
+        entity: sensor.tmhi_5g_rsrq
+        state:
+          - value: -10
+            operator: ">="
+            icon: mdi:signal-cellular-3
+            styles:
+              icon:
+                - color: green
+              state:
+                - color: green
+          - value: -20
+            operator: ">="
+            icon: mdi:signal-cellular-2
+            styles:
+              icon:
+                - color: khaki
+              state:
+                - color: khaki
+          - operator: default
+            icon: mdi:signal-cellular-1
+            styles:
+              icon:
+                - color: red
+              state:
+                - color: red
+      - type: custom:button-card
+        template: cell_signal
+        name: 5G RSSI
+        entity: sensor.tmhi_5g_rssi
+        state:
+          - value: -75
+            operator: ">="
+            icon: mdi:signal-cellular-3
+            styles:
+              icon:
+                - color: green
+              state:
+                - color: green
+          - value: -80
+            operator: ">="
+            icon: mdi:signal-cellular-2
+            styles:
+              icon:
+                - color: khaki
+              state:
+                - color: khaki
+          - operator: default
+            icon: mdi:signal-cellular-1
+            styles:
+              icon:
+                - color: red
+              state:
+                - color: red
+      - type: custom:button-card
+        template: cell_signal
+        name: 5G SINR
+        entity: sensor.tmhi_5g_sinr
+        state:
+          - value: 20
+            operator: ">="
+            icon: mdi:signal-cellular-3
+            styles:
+              icon:
+                - color: green
+              state:
+                - color: green
+          - value: 13
+            operator: ">"
+            icon: mdi:signal-cellular-2
+            styles:
+              icon:
+                - color: khaki
+              state:
+                - color: khaki
+          - operator: default
+            icon: mdi:signal-cellular-1
+            styles:
+              icon:
+                - color: red
+              state:
+                - color: red
+  - type: horizontal-stack
+    title: TMHI Gateway Info
+    cards:
+      - type: custom:button-card
+        name: Status
+        entity: sensor.tmhi_update_state
+        size: 30px
+        color_type: icon
+        show_label: true
+        show_state: true
+        state_display: |
+          [[[
+            let stateString = entity.state;
+            return stateString.charAt(0).toUpperCase() + stateString.slice(1);
+          ]]]
+        styles:
+          name:
+            - font-size: 12px
+          state:
+            - font-size: 16px
+            - font-weight: normal
+        state:
+          - value: latest
+            color: green
+            styles:
+              state:
+                - color: green
+          - operator: default
+            color: orange
+            styles:
+              state:
+                - color: orange
+      - type: custom:button-card
+        name: Firmware
+        entity: sensor.tmhi_software_version
+        size: 30px
+        color_type: icon
+        color: steelblue
+        show_label: true
+        show_state: true
+        styles:
+          name:
+            - font-size: 12px
+          state:
+            - font-size: 16px
+            - font-weight: normal
+            - color: steelblue
+      - type: custom:button-card
+        name: Uptime
+        entity: sensor.tmhi_uptime
+        size: 30px
+        color_type: icon
+        color: steelblue
+        show_label: true
+        show_state: true
+        styles:
+          name:
+            - font-size: 12px
+          state:
+            - font-size: 16px
+            - font-weight: normal
+            - color: steelblue
+      - type: custom:button-card
+        name: Serial
+        entity: sensor.tmhi_serial
+        size: 30px
+        color_type: icon
+        color: steelblue
+        show_label: true
+        show_state: true
+        styles:
+          name:
+            - font-size: 12px
+          state:
+            - font-size: 16px
+            - font-weight: normal
+            - color: steelblue
+  - type: horizontal-stack
+    title: TMHI WiFi Status
+    visibility:
+      - condition: state
+        entity: sensor.tmhi_wifi_ssid_broadcast
+        state_not: unknown
+    cards:
+      - type: custom:button-card
+        name: SSID Name
+        entity: sensor.tmhi_wifi_ssid_name
+        size: 30px
+        color_type: icon
+        color: steelblue
+        show_label: true
+        show_state: true
+        styles:
+          card:
+            - width: 90px
+          name:
+            - font-size: 12px
+          state:
+            - font-size: 12px
+            - font-weight: normal
+            - color: magenta
+      - type: custom:button-card
+        name: Broadcast
+        entity: sensor.tmhi_wifi_ssid_broadcast
+        size: 30px
+        color_type: icon
+        show_label: true
+        show_state: true
+        styles:
+          name:
+            - font-size: 12px
+          state:
+            - font-size: 14px
+            - font-weight: normal
+        state:
+          - value: Enabled
+            color: green
+            styles:
+              state:
+                - color: green
+          - value: Disabled
+            color: grey
+            styles:
+              state:
+                - color: grey
+      - type: custom:button-card
+        name: 2.4Ghz
+        entity: sensor.tmhi_wifi_24ghz_enabled
+        size: 30px
+        color_type: icon
+        show_label: true
+        show_state: true
+        styles:
+          name:
+            - font-size: 12px
+          state:
+            - font-size: 14px
+            - font-weight: normal
+        state:
+          - value: Enabled
+            color: green
+            styles:
+              state:
+                - color: green
+          - value: Disabled
+            color: grey
+            styles:
+              state:
+                - color: grey
+      - type: custom:button-card
+        name: 2.4Ghz Ch
+        entity: sensor.tmhi_wifi_24ghz_channel
+        size: 30px
+        color_type: icon
+        show_label: true
+        show_state: true
+        styles:
+          name:
+            - font-size: 12px
+          state:
+            - font-size: 14px
+            - font-weight: normal
+        state:
+          - value: Auto
+            color: steelblue
+            styles:
+              state:
+                - color: steelblue
+          - operator: Default
+            color: green
+            styles:
+              state:
+                - color: green
+      - type: custom:button-card
+        name: 5Ghz
+        entity: sensor.tmhi_wifi_5ghz_enabled
+        size: 30px
+        color_type: icon
+        show_label: true
+        show_state: true
+        styles:
+          name:
+            - font-size: 12px
+          state:
+            - font-size: 14px
+            - font-weight: normal
+        state:
+          - value: Enabled
+            color: green
+            styles:
+              state:
+                - color: green
+          - value: Disabled
+            color: grey
+            styles:
+              state:
+                - color: grey
+      - type: custom:button-card
+        name: 5Ghz Ch
+        entity: sensor.tmhi_wifi_5ghz_channel
+        size: 30px
+        color_type: icon
+        show_label: true
+        show_state: true
+        styles:
+          name:
+            - font-size: 12px
+          state:
+            - font-size: 14px
+            - font-weight: normal
+        state:
+          - value: Auto
+            color: steelblue
+            styles:
+              state:
+                - color: steelblue
+          - operator: Default
+            color: green
+            styles:
+              state:
+                - color: green

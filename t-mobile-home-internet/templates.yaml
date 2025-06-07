@@ -1,0 +1,11 @@
+# TMHI sensor templates
+## Generate human-readable uptime string (00d 00h 00m)
+- name: tmhi_uptime
+  unique_id: sensor.tmhi_uptime
+  icon: mdi:timer-play-outline
+  state: >
+    {% set time = states('sensor.tmhi_uptime_secs') | float(0) %}
+    {% set minutes = ((time % 3600) / 60) | int %}
+    {% set hours = ((time % 86400) / 3600) | int %}
+    {% set days = (time / 86400) | int %}
+    {{ "{:02}".format(days) }}d {{ "{:02}".format(hours) }}h {{ "{:02}".format(minutes) }}m

@@ -1,0 +1,11 @@
+# Remote reboot of the TMHI gateway
+tmhi_reboot:
+  url: 'http://192.168.12.1/TMI/v1/gateway/reset?set=reboot'
+  content_type:  'application/json'
+  headers:
+    User-Agent: Home Assistant
+    Content-Type: application/json
+    Authorization: "Bearer {{ state_attr('sensor.tmhi_auth', 'auth')['token'] }}"
+  timeout: 30
+  method: POST
+  verify_ssl: false
